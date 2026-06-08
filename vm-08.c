@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <limits.h>
 
 typedef int(*opcode_function_t)(unsigned char, unsigned char);
 
@@ -50,7 +51,7 @@ typedef int(*opcode_function_t)(unsigned char, unsigned char);
 
 static unsigned char mem_program [] = {
     29, 15, 32, 1, 22, 6, 12, 9, 10,
-  /* 09 */  0, 9, 7,    /* ADD 9, 7   */
+  /* 09 */  0, 127, 127,    /* ADD 9, 7   */
   /* 12 */  1, 8, 4,    /* SUB 8, 4   */
   /* 15 */  6, 3, 10,   /* LDI R3, 10 */
   /* 18 */  22,4, 3,    /* ADM M(4),R3 */
@@ -100,16 +101,31 @@ static unsigned char R3 = 0;
 
 static opcode_function_t current_instruction = NULL;
 
+bool overflow_occured(int a, int b) {
+    if(a > (CHAR_MAX - b)) {
+        FLAGS += FLAG_OVERFLOW;
+        printf("Overflow Occured\n");
+        return true;
+    }
+    return false;
+}
+
 int opcode_add(unsigned char left_operand, unsigned char right_operand){
-    return left_operand + right_operand;
+    int operand_op_result = left_operand + right_operand;
+    overflow_occured(left_operand, right_operand);
+    return operand_op_result;
 }
 
 int opcode_sub(unsigned char left_operand, unsigned char right_operand){
-    return left_operand - right_operand;
+    int operand_op_result = left_operand - right_operand;
+    overflow_occured(left_operand, right_operand);
+    return operand_op_result;
 }
 
 int opcode_mul(unsigned char left_operand, unsigned char right_operand){
-    return left_operand * right_operand;
+    int operand_op_result = left_operand * right_operand;
+    overflow_occured(left_operand, right_operand);
+    return operand_op_result;
 }
 
 int opcode_div(unsigned char left_operand, unsigned char right_operand){
@@ -117,11 +133,15 @@ int opcode_div(unsigned char left_operand, unsigned char right_operand){
         printf("Exception: divide by zero\n");
         return false;
     }
-    return left_operand / right_operand;
+    int operand_op_result = left_operand / right_operand;
+    overflow_occured(left_operand, right_operand);
+    return operand_op_result;
 }
 
 int opcode_mod(unsigned char left_operand, unsigned char right_operand){
-    return left_operand % right_operand;
+    int operand_op_result = left_operand % right_operand;
+    overflow_occured(left_operand, right_operand);
+    return operand_op_result;
 }
 
 static unsigned char get_rx_value(unsigned char operand){
@@ -232,6 +252,7 @@ int opcode_adr(unsigned char left_operand, unsigned char right_operand){
     }
 
     unsigned char Rx = get_rx_value(left_operand) + right_operand;
+    overflow_occured(left_operand, right_operand);
     set_rx_value(left_operand, Rx);
     return Rx;
 }
@@ -243,6 +264,7 @@ int opcode_sur(unsigned char left_operand, unsigned char right_operand){
     }
 
     unsigned char Rx = get_rx_value(left_operand) - right_operand;
+    overflow_occured(left_operand, right_operand);
     set_rx_value(left_operand, Rx);
     return Rx;
 }
@@ -283,9 +305,9 @@ int opcode_cmp(unsigned char left_operand, unsigned char right_operand){
 
     OUTPUT = Rx - Ry;
     FLAGS = 0; // Rx != Ry
-    // JL -> Jump only when Rx - Ry = Negative Value (5,6) = (-1)
+    
     if(OUTPUT == 0) {
-        FLAGS = FLAG_EQUAL; /* xxxx 0011 */ // GREATE_OR_EQUAL
+        FLAGS = FLAG_EQUAL;
     } 
     if(OUTPUT > 0) {
         FLAGS = FLAG_GREATER;
@@ -370,6 +392,7 @@ int opcode_adm(unsigned char left_operand, unsigned char right_operand){
     }
 
     unsigned char Rx = mem_program[left_operand] + get_rx_value(right_operand);
+    overflow_occured(left_operand, right_operand);
     set_rx_value(right_operand, Rx);
     return Rx;
 }
@@ -381,6 +404,7 @@ int opcode_subm(unsigned char left_operand, unsigned char right_operand){
     }
 
     unsigned char Rx = mem_program[left_operand] - get_rx_value(right_operand);
+    overflow_occured(left_operand, right_operand);
     set_rx_value(right_operand, Rx);
     return Rx;
 }
@@ -392,6 +416,7 @@ int opcode_mum(unsigned char left_operand, unsigned char right_operand){
     }
 
     unsigned char Rx = mem_program[left_operand] * get_rx_value(right_operand);
+    overflow_occured(left_operand, right_operand);
     set_rx_value(right_operand, Rx);
     return Rx;
 }
@@ -408,6 +433,7 @@ int opcode_dum(unsigned char left_operand, unsigned char right_operand){
     }
 
     unsigned char Rx = get_rx_value(right_operand);
+    overflow_occured(left_operand, right_operand);
     set_rx_value(right_operand, mem_program[left_operand]/Rx);
     return Rx;
 }

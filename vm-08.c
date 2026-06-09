@@ -36,11 +36,25 @@ typedef int(*opcode_function_t)(unsigned char, unsigned char);
 #define OPCODE_MUM 24
 #define OPCODE_DUM 25
 
+#define OPCODE_AND 26
+#define OPCODE_OR  27 
+#define OPCODE_XOR 28 
+#define OPCODE_NOT 29 
+#define OPCODE_SHL 30 
+#define OPCODE_SHR 31 
+
+#define OPCODE_PUSH 32
+#define OPCODE_POP 33
+
+#define OPCODE_CALL 34
+#define OPCDOE_RET 35
+
 
 #define PROGRAM_SIZE          sizeof(mem_program)
-#define INSTRUCTIONS_COUNT    26
+#define INSTRUCTIONS_COUNT    36
 #define INSTRUCTION_SIZE      3
 #define DATA_SIZE 9
+#define INSTRUCTION_SEC_SIZE sizeof(mem_program) - 1
 #define PROGRAM_BASE DATA_SIZE
 
 #define LEFT_OPERAND  IP + 1
@@ -50,7 +64,7 @@ typedef int(*opcode_function_t)(unsigned char, unsigned char);
 
 
 static unsigned char mem_program [] = {
-    29, 15, 32, 1, 22, 6, 12, 9, 10,
+    29, 15, 32, 1, 22, 6, 12, 9, 10, // DATA
   /* 09 */  0, 127, 127,    /* ADD 9, 7   */
   /* 12 */  1, 8, 4,    /* SUB 8, 4   */
   /* 15 */  6, 3, 10,   /* LDI R3, 10 */
@@ -64,21 +78,36 @@ static unsigned char mem_program [] = {
   /* 39 */  4, 7, 2,    /* MOD 7, 2   */
   /* 42 */  6, 0, 10,   /* LDI R0, 10 */
   /* 45 */  6, 1, 20,   /* LDI R1, 20 */
-  /* 48 */  11, 63, 0,  /* JMP 63     */
+  /* 48 */  11, 60, 0,  /* JMP 63     */
   /* 51 */  6, 0, 70,   /* LDI R0, 70 */
   /* 54 */  9, 0, 0,    /* INC R0     */
   /* 57 */  10, 0, 0,   /* DEC R0     */
   /* 60 */  12, 0, 1,   /* CMP R0, R1 */
   /* 63 */  15, 51, 0,  /* JL  51     */
-  /* 66 */  5, 0, 0     /* STP 0      */
-};
+  /* 66 */  30, 1,  1,  /* SHL 1, 1   */
+  /* 69 */  32, 73, 0,  /* PUSH 73    */
+  /* 72 */  33, 0,  0,  /* POP        */
+  /* 75 */  32, 88,  0, /* PUSH 88    */
+  /* 78 */  32, 90,  0, /* PUSH 90    */
+  /* 81 */  33, 0,  0,  /* POP        */
+  /* 84 */  33, 0,  0,  /* POP        */
+  /* 87 */  34, 96, 0,  /* CALL 96    */
+  /* 90 */  0,  1,  3,  /* ADD 1, 3   */
+  /* 93 */  5, 0, 0,    /* STP 0      */
+  /* 96 */  1, 38, 20,  /* SUB 38,20  */
+  /* 99 */  35, 0, 0,   /* RET        */
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (0)//PADDING // STACK
+};//END OF STACK (UNSED)
 
-
-
+/* Stack */
+static unsigned char STACK_POINTER = INSTRUCTION_SEC_SIZE;
+static unsigned char STACK_SIZE = 0;
 /* Registers */
 static int IP = PROGRAM_BASE;
 static unsigned char IR[INSTRUCTION_SIZE] = {0, 0, 0};
 static int OUTPUT = 0;
+/* Subroutine */
+static unsigned char RETURN_LOCATION = 0;
 
 static unsigned char FLAGS = 0;
 
@@ -189,7 +218,7 @@ int get_value_memory_address(unsigned char idx) {
 }
 
 int opcode_sti(unsigned char left_operand, unsigned char right_operand){
-    switch(DATA_SIZE-1){
+    switch(left_operand){
         case 0: mem_program[0] = right_operand; break;
         case 1: mem_program[1] = right_operand; break;
         case 2: mem_program[2] = right_operand; break;
@@ -208,7 +237,7 @@ int opcode_sti(unsigned char left_operand, unsigned char right_operand){
 }
 
 int opcode_str(unsigned char left_operand, unsigned char right_operand){
-    switch(DATA_SIZE-1){
+    switch(left_operand){
         case 0: mem_program[0] = get_rx_value(right_operand); break;
         case 1: mem_program[1] = get_rx_value(right_operand); break;
         case 2: mem_program[2] = get_rx_value(right_operand); break;
@@ -421,6 +450,36 @@ int opcode_mum(unsigned char left_operand, unsigned char right_operand){
     return Rx;
 }
 
+int opcode_and(unsigned char left_operand, unsigned char right_operand){
+    int operand_and_result = left_operand & right_operand;
+    return operand_and_result;
+}
+
+int opcode_or(unsigned char left_operand, unsigned char right_operand){
+    int operand_or_result = left_operand | right_operand;
+    return operand_or_result;
+}
+
+int opcode_xor(unsigned char left_operand, unsigned char right_operand){
+    int operand_xor_result = left_operand ^ right_operand;
+    return operand_xor_result;
+}
+
+int opcode_not(unsigned char left_operand, unsigned char right_operand){
+    int operand_not_result = ~left_operand;
+    return operand_not_result;
+}
+
+int opcode_shl(unsigned char left_operand, unsigned char right_operand){
+    int operand_shl_result = left_operand << right_operand;
+    return operand_shl_result;
+}
+
+int opcode_shr(unsigned char left_operand, unsigned char right_operand){
+    int operand_shr_result = left_operand >> right_operand;
+    return operand_shr_result;
+}
+
 int opcode_dum(unsigned char left_operand, unsigned char right_operand){
     if(right_operand >= RX_COUNT){
         printf("Invlaid Rx register address\n");
@@ -438,25 +497,53 @@ int opcode_dum(unsigned char left_operand, unsigned char right_operand){
     return Rx;
 }
 
-#define OPCODE_LDM 19
-#define OPCODE_STI 20
-#define OPCODE_STR 21
+int opcode_push(unsigned char left_operand, unsigned char right_operand) {
+    if(STACK_SIZE >= 10) {
+        printf("Exception: Stack is full\n");
+        return false;
+    }
+    STACK_POINTER--;
+    STACK_SIZE++;
+    mem_program[STACK_POINTER] = left_operand;
+    return mem_program[STACK_POINTER];
+}
 
-#define OPCODE_ADM 22 
-#define OPCODE_SUBM 23
-#define OPCODE_MUM 24
-#define OPCODE_DUM 25
+int opcode_pop(unsigned char left_operand, unsigned char right_operand) {
+    if(STACK_SIZE <= 0) {
+        printf("Exception: Stack is empty\n");
+        return false;
+    }
+    unsigned char old_val = mem_program[STACK_POINTER];
+    mem_program[STACK_POINTER] = 0;
+    STACK_POINTER++;
+    STACK_SIZE--;
+    return old_val;
+}
+
+int opcode_call(unsigned char left_operand, unsigned char right_operand) {
+    opcode_push(IP,right_operand);
+    IP = left_operand;
+    return left_operand;
+}
+
+int opcode_ret(unsigned char left_operand, unsigned char right_operand) {
+    IP = opcode_pop(left_operand,right_operand);
+    return IP;
+}
 
 static const opcode_function_t opcode_functions[INSTRUCTIONS_COUNT] = {
-        opcode_add, opcode_sub, opcode_mul,
-        opcode_div, opcode_mod, opcode_stp,
-        opcode_ldi, opcode_adr, opcode_sur,
-        opcode_inc, opcode_dec, opcode_jmp,
-        opcode_cmp, opcode_je,  opcode_jne,
-        opcode_jl,  opcode_jg,  opcode_jle,
-        opcode_jge, opcode_ldm, opcode_sti,
-        opcode_str, opcode_adm, opcode_subm,
-        opcode_mum, opcode_dum
+    opcode_add, opcode_sub,  opcode_mul,
+    opcode_div, opcode_mod,  opcode_stp,
+    opcode_ldi, opcode_adr,  opcode_sur,
+    opcode_inc, opcode_dec,  opcode_jmp,
+    opcode_cmp, opcode_je,   opcode_jne,
+    opcode_jl,  opcode_jg,   opcode_jle,
+    opcode_jge, opcode_ldm,  opcode_sti,
+    opcode_str, opcode_adm,  opcode_subm,
+    opcode_mum, opcode_dum,  opcode_and,
+    opcode_or,  opcode_xor,  opcode_not,
+    opcode_shl, opcode_shr,  opcode_push,
+    opcode_pop, opcode_call, opcode_ret
 
 };
 

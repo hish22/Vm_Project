@@ -438,15 +438,6 @@ int opcode_dum(unsigned char left_operand, unsigned char right_operand){
     return Rx;
 }
 
-#define OPCODE_LDM 19
-#define OPCODE_STI 20
-#define OPCODE_STR 21
-
-#define OPCODE_ADM 22 
-#define OPCODE_SUBM 23
-#define OPCODE_MUM 24
-#define OPCODE_DUM 25
-
 static const opcode_function_t opcode_functions[INSTRUCTIONS_COUNT] = {
         opcode_add, opcode_sub, opcode_mul,
         opcode_div, opcode_mod, opcode_stp,

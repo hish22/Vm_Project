@@ -36,9 +36,16 @@ typedef int(*opcode_function_t)(unsigned char, unsigned char);
 #define OPCODE_MUM 24
 #define OPCODE_DUM 25
 
+#define OPCODE_AND 26
+#define OPCODE_OR  27 
+#define OPCODE_XOR 28 
+#define OPCODE_NOT 29 
+#define OPCODE_SHL 30 
+#define OPCODE_SHR 31 
+
 
 #define PROGRAM_SIZE          sizeof(mem_program)
-#define INSTRUCTIONS_COUNT    26
+#define INSTRUCTIONS_COUNT    32
 #define INSTRUCTION_SIZE      3
 #define DATA_SIZE 9
 #define PROGRAM_BASE DATA_SIZE
@@ -70,7 +77,8 @@ static unsigned char mem_program [] = {
   /* 57 */  10, 0, 0,   /* DEC R0     */
   /* 60 */  12, 0, 1,   /* CMP R0, R1 */
   /* 63 */  15, 51, 0,  /* JL  51     */
-  /* 66 */  5, 0, 0     /* STP 0      */
+  /* 66 */  30, 1,  1,
+  /* 69 */  5, 0, 0     /* STP 0      */
 };
 
 
@@ -189,7 +197,7 @@ int get_value_memory_address(unsigned char idx) {
 }
 
 int opcode_sti(unsigned char left_operand, unsigned char right_operand){
-    switch(DATA_SIZE-1){
+    switch(left_operand){
         case 0: mem_program[0] = right_operand; break;
         case 1: mem_program[1] = right_operand; break;
         case 2: mem_program[2] = right_operand; break;
@@ -208,7 +216,7 @@ int opcode_sti(unsigned char left_operand, unsigned char right_operand){
 }
 
 int opcode_str(unsigned char left_operand, unsigned char right_operand){
-    switch(DATA_SIZE-1){
+    switch(left_operand){
         case 0: mem_program[0] = get_rx_value(right_operand); break;
         case 1: mem_program[1] = get_rx_value(right_operand); break;
         case 2: mem_program[2] = get_rx_value(right_operand); break;
@@ -421,6 +429,36 @@ int opcode_mum(unsigned char left_operand, unsigned char right_operand){
     return Rx;
 }
 
+int opcode_and(unsigned char left_operand, unsigned char right_operand){
+    int operand_and_result = left_operand & right_operand;
+    return operand_and_result;
+}
+
+int opcode_or(unsigned char left_operand, unsigned char right_operand){
+    int operand_or_result = left_operand | right_operand;
+    return operand_or_result;
+}
+
+int opcode_xor(unsigned char left_operand, unsigned char right_operand){
+    int operand_xor_result = left_operand ^ right_operand;
+    return operand_xor_result;
+}
+
+int opcode_not(unsigned char left_operand, unsigned char right_operand){
+    int operand_not_result = ~left_operand;
+    return operand_not_result;
+}
+
+int opcode_shl(unsigned char left_operand, unsigned char right_operand){
+    int operand_shl_result = left_operand << right_operand;
+    return operand_shl_result;
+}
+
+int opcode_shr(unsigned char left_operand, unsigned char right_operand){
+    int operand_shr_result = left_operand >> right_operand;
+    return operand_shr_result;
+}
+
 int opcode_dum(unsigned char left_operand, unsigned char right_operand){
     if(right_operand >= RX_COUNT){
         printf("Invlaid Rx register address\n");
@@ -438,6 +476,8 @@ int opcode_dum(unsigned char left_operand, unsigned char right_operand){
     return Rx;
 }
 
+
+
 static const opcode_function_t opcode_functions[INSTRUCTIONS_COUNT] = {
         opcode_add, opcode_sub, opcode_mul,
         opcode_div, opcode_mod, opcode_stp,
@@ -447,7 +487,9 @@ static const opcode_function_t opcode_functions[INSTRUCTIONS_COUNT] = {
         opcode_jl,  opcode_jg,  opcode_jle,
         opcode_jge, opcode_ldm, opcode_sti,
         opcode_str, opcode_adm, opcode_subm,
-        opcode_mum, opcode_dum
+        opcode_mum, opcode_dum, opcode_and,
+        opcode_or,  opcode_xor, opcode_not,
+        opcode_shl, opcode_shr,
 
 };
 

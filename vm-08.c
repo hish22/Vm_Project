@@ -49,12 +49,18 @@ typedef int(*opcode_function_t)(unsigned char, unsigned char);
 #define OPCODE_CALL 34
 #define OPCDOE_RET 35
 
+#define OPCODE_ALL 36
+#define OPCODE_FRE 37
+
 
 #define PROGRAM_SIZE          sizeof(mem_program)
-#define INSTRUCTIONS_COUNT    36
+#define INSTRUCTIONS_COUNT    38
 #define INSTRUCTION_SIZE      3
 #define DATA_SIZE 9
+#define TOTAL_STACK_SIZE 11
+#define HEAP_SIZE 11
 #define INSTRUCTION_SEC_SIZE sizeof(mem_program) - 1
+#define CODE_SIZE PROGRAM_SIZE - (TOTAL_STACK_SIZE + DATA_SIZE + HEAP_SIZE)
 #define PROGRAM_BASE DATA_SIZE
 
 #define LEFT_OPERAND  IP + 1
@@ -65,38 +71,44 @@ typedef int(*opcode_function_t)(unsigned char, unsigned char);
 
 static unsigned char mem_program [] = {
     29, 15, 32, 1, 22, 6, 12, 9, 10, // DATA
-  /* 09 */  0, 127, 127,    /* ADD 9, 7   */
-  /* 12 */  1, 8, 4,    /* SUB 8, 4   */
-  /* 15 */  6, 3, 10,   /* LDI R3, 10 */
-  /* 18 */  22,4, 3,    /* ADM M(4),R3 */
-  /* 21 */  0, 5, 8,    /* ADD 5, 8   */
-  /* 24 */  6, 2, 77,   /* LDI R2, 77 */
-  /* 27 */  7, 2, 23,   /* ADR R2, 23 */
-  /* 30 */  8, 2, 5,    /* SUR R2, 5  */
-  /* 33 */  2, 3, 6,    /* MUL 3, 6   */
-  /* 36 */  3, 9, 3,    /* DIV 9, 3   */
-  /* 39 */  4, 7, 2,    /* MOD 7, 2   */
-  /* 42 */  6, 0, 10,   /* LDI R0, 10 */
-  /* 45 */  6, 1, 20,   /* LDI R1, 20 */
-  /* 48 */  11, 60, 0,  /* JMP 63     */
-  /* 51 */  6, 0, 70,   /* LDI R0, 70 */
-  /* 54 */  9, 0, 0,    /* INC R0     */
-  /* 57 */  10, 0, 0,   /* DEC R0     */
-  /* 60 */  12, 0, 1,   /* CMP R0, R1 */
-  /* 63 */  15, 51, 0,  /* JL  51     */
-  /* 66 */  30, 1,  1,  /* SHL 1, 1   */
-  /* 69 */  32, 73, 0,  /* PUSH 73    */
-  /* 72 */  33, 0,  0,  /* POP        */
-  /* 75 */  32, 88,  0, /* PUSH 88    */
-  /* 78 */  32, 90,  0, /* PUSH 90    */
-  /* 81 */  33, 0,  0,  /* POP        */
-  /* 84 */  33, 0,  0,  /* POP        */
-  /* 87 */  34, 96, 0,  /* CALL 96    */
-  /* 90 */  0,  1,  3,  /* ADD 1, 3   */
-  /* 93 */  5, 0, 0,    /* STP 0      */
-  // START OF A FUNCTION:
-  /* 96 */  1, 38, 20,  /* SUB 38,20  */
-  /* 99 */  35, 0, 0,   /* RET        */
+  /* 09 */  0, 127, 127, /* ADD 9, 7   */
+  /* 12 */  1, 8, 4,     /* SUB 8, 4   */
+  /* 15 */  6, 3, 10,    /* LDI R3, 10 */
+  /* 18 */  22,4, 3,     /* ADM M(4),R3 */
+  /* 21 */  0, 5, 8,     /* ADD 5, 8   */
+  /* 24 */  6, 2, 77,    /* LDI R2, 77 */
+  /* 27 */  7, 2, 23,    /* ADR R2, 23 */
+  /* 30 */  8, 2, 5,     /* SUR R2, 5  */
+  /* 33 */  2, 3, 6,     /* MUL 3, 6   */
+  /* 36 */  3, 9, 3,     /* DIV 9, 3   */
+  /* 39 */  4, 7, 2,     /* MOD 7, 2   */
+  /* 42 */  6, 0, 10,    /* LDI R0, 10 */
+  /* 45 */  6, 1, 20,    /* LDI R1, 20 */
+  /* 48 */  11, 60, 0,   /* JMP 60     */
+  /* 51 */  6, 0, 70,    /* LDI R0, 70 */
+  /* 54 */  9, 0, 0,     /* INC R0     */
+  /* 57 */  10, 0, 0,    /* DEC R0     */
+  /* 60 */  12, 0, 1,    /* CMP R0, R1 */
+  /* 63 */  15, 51, 0,   /* JL  51     */
+  /* 66 */  30, 1,  1,   /* SHL 1, 1   */
+  /* 69 */  32, 73, 0,   /* PUSH 73    */
+  /* 72 */  33, 0,  0,   /* POP        */
+  /* 75 */  32, 88,  0,  /* PUSH 88    */
+  /* 78 */  32, 90,  0,  /* PUSH 90    */
+  /* 81 */  33, 0,  0,   /* POP        */
+  /* 84 */  33, 0,  0,   /* POP        */
+  /* 87 */  34, 111, 0,  /* CALL 102   */
+  /* 90 */  0,  1,  3,   /* ADD 1, 3   */
+  /* 93 */  36, 3, 0,    /* ALL 3     */
+  /* 96 */  36, 7, 0,    /* ALL 7     */
+  /* 99 */  37, 117, 0,  /* FRE 117   */
+  /* 102 */  36, 2, 0,   /* ALL 2     */
+  /* 105 */  36, 1, 0,   /* ALL 1     */
+  /* 108 */  5, 0, 0,    /* STP 0      */
+  // START OF A SUB() FUNCTION:
+  /* 111 */  1, 38, 20, /* SUB 38,20  */
+  /* 114 */  35, 0, 0,  /* RET        */
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (0), // HEAP
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (0)//PADDING // STACK //END OF STACK (UNSED)
 };
 
@@ -107,6 +119,11 @@ static unsigned char STACK_SIZE = 0;
 static int IP = PROGRAM_BASE;
 static unsigned char IR[INSTRUCTION_SIZE] = {0, 0, 0};
 static int OUTPUT = 0;
+/* Heap */
+#define CODE_PLUS_CODE CODE_SIZE + DATA_SIZE
+static unsigned char HEAP_POINTER = CODE_SIZE + DATA_SIZE;
+static unsigned char HEAP_LOCATIONS [HEAP_SIZE][2];
+static unsigned char ALLOCATED = 0;
 
 static unsigned char FLAGS = 0;
 
@@ -530,6 +547,44 @@ int opcode_ret(unsigned char left_operand, unsigned char right_operand) {
     return IP;
 }
 
+int opcode_allocate(unsigned char left_operand, unsigned char right_operand){
+
+    if((left_operand + ALLOCATED) > (HEAP_SIZE-1)) {
+        printf("Provided size exceeds heap size\n");
+        exit(0);
+    }
+
+    for(int i = 0; i < HEAP_SIZE; i++) {
+        if(HEAP_LOCATIONS[i][0] == 0 && HEAP_LOCATIONS[i][1] == 0) {
+            HEAP_LOCATIONS[i][0] = HEAP_POINTER;
+            HEAP_LOCATIONS[i][1] = left_operand;
+            HEAP_POINTER += left_operand;
+            ALLOCATED += left_operand;
+            break;
+        }
+    }
+    for(int i = 0; i < HEAP_SIZE; i++) {
+        printf("{%d,%d}\n", HEAP_LOCATIONS[i][0],HEAP_LOCATIONS[i][1]);
+    }
+    return HEAP_POINTER;
+}
+
+int opcode_free(unsigned char left_operand, unsigned char right_operand){
+    for(int i = 0; i < HEAP_SIZE; i++) {
+        if(HEAP_LOCATIONS[i][0] == left_operand) {
+            HEAP_POINTER = HEAP_LOCATIONS[i][0];
+            ALLOCATED -= HEAP_LOCATIONS[i][1];
+            HEAP_LOCATIONS[i][0] = 0;
+            HEAP_LOCATIONS[i][1] = 0;
+            break;
+        }
+    }
+    for(int i = 0; i < HEAP_SIZE; i++) {
+        printf("{%d,%d}\n", HEAP_LOCATIONS[i][0],HEAP_LOCATIONS[i][1]);
+    }
+    return HEAP_POINTER;
+}
+
 static const opcode_function_t opcode_functions[INSTRUCTIONS_COUNT] = {
     opcode_add, opcode_sub,  opcode_mul,
     opcode_div, opcode_mod,  opcode_stp,
@@ -542,7 +597,8 @@ static const opcode_function_t opcode_functions[INSTRUCTIONS_COUNT] = {
     opcode_mum, opcode_dum,  opcode_and,
     opcode_or,  opcode_xor,  opcode_not,
     opcode_shl, opcode_shr,  opcode_push,
-    opcode_pop, opcode_call, opcode_ret
+    opcode_pop, opcode_call, opcode_ret,
+    opcode_allocate, opcode_free
 
 };
 

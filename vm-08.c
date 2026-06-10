@@ -94,10 +94,11 @@ static unsigned char mem_program [] = {
   /* 87 */  34, 96, 0,  /* CALL 96    */
   /* 90 */  0,  1,  3,  /* ADD 1, 3   */
   /* 93 */  5, 0, 0,    /* STP 0      */
+  // START OF A FUNCTION:
   /* 96 */  1, 38, 20,  /* SUB 38,20  */
   /* 99 */  35, 0, 0,   /* RET        */
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (0)//PADDING // STACK
-};//END OF STACK (UNSED)
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (0)//PADDING // STACK //END OF STACK (UNSED)
+};
 
 /* Stack */
 static unsigned char STACK_POINTER = INSTRUCTION_SEC_SIZE;
@@ -106,8 +107,6 @@ static unsigned char STACK_SIZE = 0;
 static int IP = PROGRAM_BASE;
 static unsigned char IR[INSTRUCTION_SIZE] = {0, 0, 0};
 static int OUTPUT = 0;
-/* Subroutine */
-static unsigned char RETURN_LOCATION = 0;
 
 static unsigned char FLAGS = 0;
 
